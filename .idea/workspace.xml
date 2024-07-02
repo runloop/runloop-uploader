@@ -5,18 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ec737e22-09e7-45b6-9f1e-ac831a29a6ba" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/runloop-uploader.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/chat.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client-secret.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pg.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ssmpt.conf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/startup-script.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/options.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chat.py" beforeDir="false" afterPath="$PROJECT_DIR$/upload.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pg.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/startup-script.sh" beforeDir="false" afterPath="$PROJECT_DIR$/startup-script.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/token.json" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,6 +43,7 @@
     "Python.chat.executor": "Run",
     "Python.upload.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "/Users/dan/dev/runloop-uploader",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -59,6 +54,9 @@
   }
 }]]></component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/chatgpt.py" />
@@ -80,7 +78,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1719224821958</updated>
-      <workItem from="1719224824746" duration="17835000" />
+      <workItem from="1719224824746" duration="110731000" />
     </task>
     <servers />
   </component>

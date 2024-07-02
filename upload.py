@@ -12,7 +12,7 @@ from googleapiclient.http import MediaFileUpload
 SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
 CLIENT_SECRETS_FILE = 'client-secret.json'
 TOKEN_FILE = 'token.json'
-DEFAULTS_FILE = 'pg.json'
+DEFAULTS_FILE = 'metadata.json'
 
 
 def authenticate():

@@ -10,21 +10,25 @@ install_dependencies() {
 }
 
 install_ffmpeg() {
+  echo "Installing FFMPEG"
   sudo apt install -y ffmpeg
 }
 
 install_python_libs() {
+  echo "Install python libs"
   sudo apt install -y python3-pip
   # install python libs
   pip3 install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
 }
 
 update_apt() {
+  echo "Updating apt"
   sudo apt update
   sudo apt-get update
 }
 
 install_email() {
+  echo "Installing ssmpt"
   local hostname
   # install the email client
   sudo apt-get install -y ssmtp
@@ -39,14 +43,15 @@ install_email() {
 
 prepare_upload_script() {
   declare channel_code="$1"
+  echo "Preparing upload script for ${channel_code}"
   # download the python script for uploading
   gsutil cp "gs://runloop-videos/000-stream-assets/scripts/upload.py" .
   # download the correct metadata file (pg/hh)
   gsutil cp "gs://runloop-videos/000-stream-assets/scripts/${channel_code}-metadata.json" "./metadata.json"
   # download the client-secret.json file for the runloop-uploader app
-  sudo gcloud secrets versions access latest --secret=client_secret_json > client-secret.json
-  # download the latest token.json file for oauth
-  sudo gcloud secrets versions access latest --secret=token_json > token.json
+  gcloud secrets versions access latest --secret=client_secret_json > client-secret.json
+  # download the secret if it exists
+  gcloud secrets versions access latest --secret="${channel_code}_token_json" > token.json
 }
 
 gsls() {
@@ -100,6 +105,7 @@ get_id() {
 }
 
 download_project_files() {
+  echo "Downloading project files"
   declare search_term="$1"
   local search_results
   local search_term
@@ -127,6 +133,7 @@ check_file_exists() {
 }
 
 create_file_list() {
+  echo "Creating file list"
   # Parameters with default values
   declare path="$1" intro="${2:-intro.mov}" loop="${3:-loop.mov}"
 
@@ -148,13 +155,25 @@ create_file_list() {
       echo "$loop_value"
     done
   } > "${path}"
+}
 
-  echo "File list created successfully."
+stream_full_video() {
+  echo "Starting stream"
+  declare file_list="$1" duration="${2:-10:00:00.00}"
+  local stream_key
+  stream_key="y9dh-p0my-4f1m-fgha-fsds"
+  ffmpeg -re -f concat -safe 0 -i files.txt -c copy -t "${duration}" -bufsize 10000k -method POST -f hls -ignore_io_errors 1 "https://a.upload.youtube.com/http_upload_hls?cid=${stream_key}&copy=0&file=index.m3u8"
+  local ffmpeg_status
+  ffmpeg_status=$?
+  if [ $ffmpeg_status -ne 0 ]; then
+    return 1
+  fi
 }
 
 render_full_video() {
-  declare file_list="$1" project_id="$2"
-  ffmpeg -y -f concat -safe 0 -i "${file_list}" -c copy -t 9:59:59.92 "${project_id}.mov"
+  echo "Starting render"
+  declare file_list="$1" project_id="$2" duration="${3:-9:59:59.92}"
+  ffmpeg -y -f concat -safe 0 -i "${file_list}" -c copy -t "${duration}" "${project_id}.mov"
   local ffmpeg_status
   ffmpeg_status=$?
   if [ $ffmpeg_status -ne 0 ]; then
@@ -163,25 +182,23 @@ render_full_video() {
 }
 
 upload_video() {
-  declare video_file="$1"
-  echo "Uploaded file: ${video_file}"
-#  # use the python script to upload the video file
-#  python3 upload.py "${video_file}"
-#  # update to the token_json secret
-#  cat token.json | gcloud secrets versions add "token_json" --data-file=-
+  declare video_file="$1" channel_code="$2"
+  echo "Uploaded file: ${video_file}, to channel: ${channel_code}"
+  # use the python script to upload the video file
+  python3 upload.py "${video_file}"
+  # update to the token_json secret
+  cat token.json | gcloud secrets versions add "${channel_code}_token_json" --data-file=-
 }
-
-
 
 delete_instance() {
   echo "Deleting instance"
   local instance_name
   instance_name=$(hostname)
-#  gcloud compute instances delete "${instance_name}" --zone=europe-west1-b --quiet
+  gcloud compute instances delete "${instance_name}" --zone=europe-west1-b --quiet
 }
 
 send_notification() {
-  declare subject="${1:-Upload succeeded}" message="${2:-Uploaded succeeded without errors}"
+  declare subject="${1:-Upload succeeded}" message="${2:-Upload succeeded without errors}"
   echo -e "Subject: ${subject}\n\n${message}" | ssmtp patsysgarden.cattv@gmail.com
 }
 
@@ -205,17 +222,23 @@ time_elapsed_since() {
 }
 
 main() {
-  declare channel_code="$1" search_term="$2" intro_file="${3:-intro.mov}"
+  declare search_term="$1" channel_code="${2:-pg}" intro_file="${3:-intro.mov}" duration="${4:-10:00:00.00}"
+  echo "Received args: search_term=${search_term} channel_code=${channel_code} intro_file=${intro_file} duration=${duration}" > /tmp/start_log
+
   # capture start time
   local start_time
   start_time=$(date +%s)
 
-  # prepare everything
-  install_dependencies
-  prepare_upload_script "${channel_code}"
-
   {
+    # prepare everything
+    echo "Installing dependencies" >> /tmp/start_log
+    install_dependencies
+
+    echo "Preparing upload script" >> /tmp/start_log
+    prepare_upload_script "${channel_code}"
+
     # search for project
+    echo "Finding project" >> /tmp/start_log
     local search_results
     search_results=$(gsls "${search_term}")
 
@@ -224,9 +247,11 @@ main() {
     project_id=$(get_id "${search_results}")
 
     # download the project from google cloud storage
+    echo "Downloading project files" >> /tmp/start_log
     gcloud storage cp -r "gs://runloop-videos/${project_id}" ./
 
     # create the file list used for rendering the looped video
+    echo "Creating file list" >> /tmp/start_log
     local file_list="files.txt"
     local intro_path
     local loop_path
@@ -234,37 +259,58 @@ main() {
     loop_path=$(realpath "${project_id}/loop.mov")
     create_file_list "${file_list}" "${intro_path}" "${loop_path}"
 
-    # render the 10-hour version of the video
-    render_full_video "${file_list}" "${project_id}"
+    # notify of config success
+    echo "Sending notification" >> /tmp/start_log
+    local elapsed
+    elapsed=$(time_elapsed_since "$start_time")
+    send_notification "Configuration Success" "Configuration took ${elapsed}. Starting render."
 
-    # move and rename loop portion for upload with meaningful name
-    mv "${project_id}/loop.mov" "${project_id}-loop.mov"
+    # stream the 10-hour version of the video
+    echo "Rendering video" >> /tmp/start_log
+    render_full_video "${file_list}" "${project_id}" "${duration}"
+
+    # copy loop portion for upload with meaningful name
+    echo "Copying loop portion for upload" >> /tmp/start_log
+    cp "${project_id}/loop.mov" "${project_id}-loop.mov"
 
     # upload videos
-    upload_video "${project_id}.mov"
-    upload_video "${project_id}-loop.mov"
+    echo "Uploading full length video" >> /tmp/start_log
+    upload_video "${project_id}.mov" "${channel_code}"
+    echo "Uploading loop video" >> /tmp/start_log
+    upload_video "${project_id}-loop.mov" "${channel_code}"
+
+    # cleanup
+    rm token.json metadata.json
 
     # notify of success
-    local elapsed
+    echo "Ending" >> /tmp/start_log
     elapsed=$(time_elapsed_since "$start_time")
   } > /tmp/output_log 2>/tmp/error_log
 
   local output
   output=$(cat /tmp/output_log)
   send_notification "Upload successful" "Script completed in ${elapsed}\n\n${output}"
+
+  echo "Deleting instance" >> /tmp/start_log
   delete_instance
 }
 
 error_handler() {
   declare error_message="$1"
   echo "${error_message}"
-  send_notification "Upload failed" "${error_message}"
+  send_notification "Stream failed" "${error_message}"
   delete_instance
 }
 
 trap 'error_handler "$(cat /tmp/error_log)"' ERR
 
-main "$@" 2>/tmp/error_log
+readonly SEARCH_TERM=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/search_term)
+readonly INTRO_FILE=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/intro_file)
+readonly DURATION=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/duration)
+readonly CHANNEL_CODE=$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/channel_code)
+# TODO: Options to prevent upload and instance deletion
+
+main "$SEARCH_TERM" "$CHANNEL_CODE" "$INTRO_FILE" "$DURATION" 2>/tmp/error_log
 main_exit_status=$?
 
 if [ $main_exit_status -ne 0 ]; then
