@@ -88,6 +88,7 @@ main() {
 
   # copy the latest file to the bucket
   gcloud storage cp "${SCRIPT_DIR}/../server/render.sh" gs://runloop-videos/000-stream-assets/scripts/render.sh
+  gcloud storage cp "${SCRIPT_DIR}/../server/render-functions.sh" gs://runloop-videos/000-stream-assets/scripts/render-functions.sh
 
   # create the new instance which will run the script
   gcloud compute instances create "render-${project_id}" \

@@ -8,11 +8,11 @@ show_help() {
   echo "Usage: live-create.sh <instance-name> [size]"
   echo "Options:"
   echo "  <instance-name>    The name of the instance (required)"
-  echo "  [size]             The size of the disk (optional, defaults to 40)"
+  echo "  [size]             The size of the disk (optional, defaults to 25)"
 }
 
 main() {
-  declare name="$1" size="${2:-40}"
+  declare name="$1" size="${2:-25}"
 
   echo "Creating instance '${name}' with arguments size='${size}'"
 
