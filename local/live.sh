@@ -14,6 +14,7 @@ show_help() {
   echo "  -v <volume>        The volume the original video should play at (optional)"
   echo "  -a <audio-file>    Google storage URL for audio file (optional)"
   echo "  -l <loop-file>     The name of the file we intend to loop (optional)"
+  echo "  -d <duration>      The duration of the stream (optional)"
   echo "  -h                 Show this help message"
 }
 
@@ -25,8 +26,9 @@ MUSIC_GS_URL=""
 VIDEO_VOLUME=""
 AUDIO_GS_URL=""
 LOOP_FILE="loop.mov"
+DURATION=""
 
-while getopts ":i:k:q:m:v:a:l:h" opt; do
+while getopts ":i:k:q:m:v:a:l:d:h" opt; do
   case ${opt} in
     i )
       INSTANCE_NAME=$OPTARG
@@ -48,6 +50,9 @@ while getopts ":i:k:q:m:v:a:l:h" opt; do
       ;;
     l )
       LOOP_FILE=$OPTARG
+      ;;
+    d )
+      DURATION=${OPTARG}
       ;;
     h )
       show_help
@@ -80,8 +85,14 @@ if [ -z "${STREAM_KEY}" ]; then
   exit 1
 fi
 
+# Check if -d flag is a number above zero
+DURATION_FLAG=""
+if [[ "${DURATION}" =~ ^[0-9]+$ ]] && [ "${DURATION}" -gt 0 ]; then
+    DURATION_FLAG="-d ${DURATION}"
+fi
+
 gcloud compute scp "${SCRIPT_DIR}/../server/live.sh" "${INSTANCE_NAME}:~/live.sh"
-gcloud compute ssh "${INSTANCE_NAME}" --command "bash ~/live.sh -k \"${STREAM_KEY}\" -l \"${LOOP_FILE}\" -q \"${QUERY}\" -a \"${AUDIO_GS_URL}\" -m \"${MUSIC_GS_URL}\" ${VIDEO_VOLUME}"
+gcloud compute ssh "${INSTANCE_NAME}" --command "bash ~/live.sh -k \"${STREAM_KEY}\" -l \"${LOOP_FILE}\" -q \"${QUERY}\" -a \"${AUDIO_GS_URL}\" -m \"${MUSIC_GS_URL}\" ${VIDEO_VOLUME} ${DURATION_FLAG}"
 
 # alias pg1="bash ~/dev/runloop-uploader.sh -i stream-pg12 -k key1 -q"
 # alias pg1_classics="bash ~/dev/runloop-uploader.sh -i stream-pg12 -k key1 -m gs://.../classics -q"

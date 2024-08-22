@@ -45,12 +45,38 @@ prepare_upload_script() {
   declare channel_code="$1"
   echo "Preparing upload script for ${channel_code}"
   # download the python script for uploading
-  gsutil cp "gs://runloop-videos/000-stream-assets/scripts/upload.py" .
+  download_upload_script
+
   # download the correct metadata file (pg/hh)
-  gsutil cp "gs://runloop-videos/000-stream-assets/scripts/${channel_code}-metadata.json" "./metadata.json"
+  download_metadata "${channel_code}"
+
   # download the client-secret.json file for the runloop-uploader app
-  gcloud secrets versions access latest --secret=client_secret_json > client-secret.json
+  download_client_secret
+
   # download the secret if it exists
+  download_token "${channel_code}"
+}
+
+download_upload_script() {
+  gsutil cp "gs://runloop-videos/000-stream-assets/scripts/upload.py" .
+}
+
+refresh_functions() {
+  gsutil cp "gs://runloop-videos/000-stream-assets/scripts/render-functions.sh" .
+  source render-functions.sh
+}
+
+download_metadata() {
+  declare channel_code="$1"
+  gsutil cp "gs://runloop-videos/000-stream-assets/scripts/${channel_code}-metadata.json" "./metadata.json"
+}
+
+download_client_secret() {
+  gcloud secrets versions access latest --secret=client_secret_json > client-secret.json
+}
+
+download_token() {
+  declare channel_code="$1"
   gcloud secrets versions access latest --secret="${channel_code}_token_json" > token.json
 }
 
@@ -135,21 +161,26 @@ check_file_exists() {
 create_file_list() {
   echo "Creating file list"
   # Parameters with default values
-  declare path="$1" intro="${2:-intro.mov}" loop="${3:-loop.mov}"
+  declare project_id="$1" intro_file="${2:-intro.mov}" path="${3:-files.txt}"
+
+  local intro_path
+  local loop_path
+  intro_path=$(realpath "${project_id}/${intro_file}")
+  loop_path=$(realpath "${project_id}/loop.mov")
 
   # Check if the repeat file exists
-  if ! check_file_exists "${loop}"; then
-    echo "Error: ${loop} does not exist" >&2
+  if ! check_file_exists "${loop_path}"; then
+    echo "Error: ${loop_path} does not exist" >&2
     return 0
   fi
 
   # Repeated value
-  local loop_value="file '${loop}'"
+  local loop_value="file '${loop_path}'"
 
   # Create the list
   {
-    if check_file_exists "${intro}"; then
-      echo "file '${intro}'"
+    if check_file_exists "${intro_path}"; then
+      echo "file '${intro_path}'"
     fi
     for i in {1..50}; do
       echo "$loop_value"
@@ -172,8 +203,18 @@ stream_full_video() {
 
 render_full_video() {
   echo "Starting render"
-  declare file_list="$1" project_id="$2" duration="${3:-9:59:59.92}"
+  declare project_id="$1" duration="${2:-11:54:59.92}" file_list="${3:-files.txt}"
   ffmpeg -y -f concat -safe 0 -i "${file_list}" -c copy -t "${duration}" "${project_id}.mov"
+  local ffmpeg_status
+  ffmpeg_status=$?
+  if [ $ffmpeg_status -ne 0 ]; then
+    return 1
+  fi
+}
+
+render_looped_video() {
+  declare project_id="$1" duration="${2:-11:54:59.92}"
+  ffmpeg -y -stream_loop -1 -i "${project_id}/loop.mov" -c copy -t "${duration}" "${project_id}.mov"
   local ffmpeg_status
   ffmpeg_status=$?
   if [ $ffmpeg_status -ne 0 ]; then
@@ -185,8 +226,18 @@ upload_video() {
   declare video_file="$1" channel_code="$2"
   echo "Uploaded file: ${video_file}, to channel: ${channel_code}"
   # use the python script to upload the video file
-  python3 upload.py "${video_file}"
+  python_upload "${video_file}"
   # update to the token_json secret
+  update_token_secret "${channel_code}"
+}
+
+python_upload() {
+  declare video_file="$1"
+  python3 upload.py "${video_file}"
+}
+
+update_token_secret() {
+  declare channel_code="$1"
   cat token.json | gcloud secrets versions add "${channel_code}_token_json" --data-file=-
 }
 
@@ -200,6 +251,13 @@ delete_instance() {
 send_notification() {
   declare subject="${1:-Upload succeeded}" message="${2:-Upload succeeded without errors}"
   echo -e "Subject: ${subject}\n\n${message}" | ssmtp patsysgarden.cattv@gmail.com
+}
+
+prepare_for_render() {
+  declare project_id="$1"
+  download_project_files "${project_id}"
+  create_file_list "${project_id}" none
+  cp "${project_id}/loop.mov" "${project_id}-loop.mov"
 }
 
 time_elapsed_since() {
@@ -221,8 +279,13 @@ time_elapsed_since() {
   printf "%d minutes and %d seconds" "${minutes}" "${seconds}"
 }
 
+copy_loop_portion() {
+  declare project_id="$1"
+  cp "${project_id}/loop.mov" "${project_id}-loop.mov"
+}
+
 main() {
-  declare search_term="$1" channel_code="${2:-pg}" intro_file="${3:-intro.mov}" duration="${4:-10:00:00.00}"
+  declare search_term="$1" channel_code="${2:-pg}" intro_file="${3:-intro.mov}" duration="${4:-11:54:59.92}"
   echo "Received args: search_term=${search_term} channel_code=${channel_code} intro_file=${intro_file} duration=${duration}" > /tmp/start_log
 
   # capture start time
@@ -252,12 +315,7 @@ main() {
 
     # create the file list used for rendering the looped video
     echo "Creating file list" >> /tmp/start_log
-    local file_list="files.txt"
-    local intro_path
-    local loop_path
-    intro_path=$(realpath "${project_id}/${intro_file}")
-    loop_path=$(realpath "${project_id}/loop.mov")
-    create_file_list "${file_list}" "${intro_path}" "${loop_path}"
+    create_file_list "${project_id}" "${intro_path}"
 
     # notify of config success
     echo "Sending notification" >> /tmp/start_log
@@ -267,11 +325,11 @@ main() {
 
     # stream the 10-hour version of the video
     echo "Rendering video" >> /tmp/start_log
-    render_full_video "${file_list}" "${project_id}" "${duration}"
+    render_full_video "${project_id}" "${duration}"
 
     # copy loop portion for upload with meaningful name
     echo "Copying loop portion for upload" >> /tmp/start_log
-    cp "${project_id}/loop.mov" "${project_id}-loop.mov"
+    copy_loop_portion "${project_id}"
 
     # upload videos
     echo "Uploading full length video" >> /tmp/start_log

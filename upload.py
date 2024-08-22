@@ -44,12 +44,22 @@ def upload_video(youtube, video_file):
     with open(DEFAULTS_FILE, 'r') as file:
         request_body = json.load(file)
 
+    total_size = os.path.getsize(video_file)
+    request_body['snippet']['title'] = os.path.basename(video_file)
+
     media = MediaFileUpload(video_file, chunksize=-1, resumable=True)
     request = youtube.videos().insert(
         part='snippet,status,localizations',
         body=request_body,
         media_body=media
     )
+
+    # response = None
+    # while response is None:
+    #     status, response = request.next_chunk()
+    #     if status:
+    #         progress = int((status.resumable_progress / total_size) * 100)
+    #         print(f"Upload progress: {progress}%")
 
     response = request.execute()
     print(f'Video uploaded: {response["id"]}')

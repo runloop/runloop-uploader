@@ -11,6 +11,7 @@ show_help() {
   echo "  -v <volume>        The volume the original video should play at (optional)"
   echo "  -a <audio-file>    Google storage URL for audio file (optional)"
   echo "  -l <loop-file>     The name of the file we intend to loop (optional)"
+  echo "  -d <duration>      The duration of the stream (optional)"
   echo "  -h                 Show this help message"
 }
 
@@ -21,8 +22,9 @@ MUSIC_GS_URL=""
 VIDEO_VOLUME="0"
 AUDIO_GS_URL=""
 LOOP_FILE="loop.mov"
+DURATION=""
 
-while getopts ":k:q:m:v:a:l:h" opt; do
+while getopts ":k:q:m:v:a:l:d:h" opt; do
   case ${opt} in
     k )
       STREAM_KEY=$OPTARG
@@ -41,6 +43,9 @@ while getopts ":k:q:m:v:a:l:h" opt; do
       ;;
     l )
       LOOP_FILE=$OPTARG
+      ;;
+    d )
+      DURATION=${OPTARG}
       ;;
     h )
       show_help
@@ -150,9 +155,15 @@ download_audio_file() {
 }
 
 stream_video_only() {
-  declare stream_key="$1" loop_file="$2"
+  declare stream_key="$1" loop_file="$2" duration="$3"
+  local time_flag=""
+
+  if [ -n "${duration}" ]; then
+    time_flag="-t ${duration}:00:00"
+  fi
+
   echo "stream_video_only stream_key=${stream_key}"
-  screen -dmS "${stream_key}" ffmpeg -re -stream_loop -1 -i "${stream_key}/${loop_file}" -c copy -bufsize 10000k \
+  screen -dmS "${stream_key}" ffmpeg -re -stream_loop -1 -i "${stream_key}/${loop_file}" -c copy ${time_flag} -bufsize 10000k \
     -method POST -f hls -ignore_io_errors 1 \
     "https://a.upload.youtube.com/http_upload_hls?cid=${stream_key}&copy=0&file=index.m3u8"
 }
@@ -255,7 +266,7 @@ print_pieces() {
 }
 
 main () {
-  declare stream_key="$1" loop_file="$2" query="$3" music_gs_url="$4" audio_gs_url="$5" video_volume="$6"
+  declare stream_key="$1" loop_file="$2" query="$3" music_gs_url="$4" audio_gs_url="$5" video_volume="$6" duration="$7"
 
   # clean up any streams that are using this stream key
   clean_up "${stream_key}" || true
@@ -276,7 +287,7 @@ main () {
 
   # if don't have either music or audio options play the video as is
   if [[ -z "${music_gs_url}" && -z "${audio_gs_url}" ]]; then
-    stream_video_only "${stream_key}" "${loop_file}"
+    stream_video_only "${stream_key}" "${loop_file}" "${duration}"
 
   # if we only have audio, play the video and replace the audio
   elif [[ -z "${music_gs_url}" && -n "${audio_gs_url}" ]]; then
@@ -346,6 +357,12 @@ if [[ -n $AUDIO_GS_URL && ! $AUDIO_GS_URL =~ $bucket_regex ]]; then
   exit 1
 fi
 
-main "${STREAM_KEY}" "${LOOP_FILE}" "${QUERY}" "${MUSIC_GS_URL}" "${AUDIO_GS_URL}" "${VIDEO_VOLUME}"
+if [ -n "${DURATION}" ] && { ! [[ "${DURATION}" =~ ^[0-9]+$ ]] || [ "${DURATION}" -le 0 ]; }; then
+    echo "Error: If DURATION is defined it must be a number above 0"
+    show_help
+    exit 1
+fi
+
+main "${STREAM_KEY}" "${LOOP_FILE}" "${QUERY}" "${MUSIC_GS_URL}" "${AUDIO_GS_URL}" "${VIDEO_VOLUME}" "${DURATION}"
 
 

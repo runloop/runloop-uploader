@@ -17,7 +17,7 @@ show_help() {
 # Default values
 QUERY=""
 CHANNEL_CODE="pg"
-INTRO_FILE="intro.mov"
+INTRO_FILE="none"
 DURATION="9:59:59.92"
 
 while getopts ":p:c:i:d:h" opt; do
@@ -87,6 +87,7 @@ main() {
   echo "Creating instance 'render-${project_id}' with arguments project='${project}' channel_code='${channel_code}' intro_file='${intro_file}' duration='${duration}'"
 
   # copy the latest file to the bucket
+  gcloud storage cp "${SCRIPT_DIR}/../upload.py" gs://runloop-videos/000-stream-assets/scripts/upload.py
   gcloud storage cp "${SCRIPT_DIR}/../server/render.sh" gs://runloop-videos/000-stream-assets/scripts/render.sh
   gcloud storage cp "${SCRIPT_DIR}/../server/render-functions.sh" gs://runloop-videos/000-stream-assets/scripts/render-functions.sh
 
