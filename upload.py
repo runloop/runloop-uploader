@@ -62,7 +62,7 @@ def upload_video(youtube, video_file):
     #         print(f"Upload progress: {progress}%")
 
     response = request.execute()
-    print(f'Video uploaded: {response["id"]}')
+    print(f'Video uploaded: https://youtu.be/{response["id"]}')
 
 
 if __name__ == "__main__":
