@@ -5,10 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ec737e22-09e7-45b6-9f1e-ac831a29a6ba" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/local/token.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/refresh-token.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/local/live.sh" beforeDir="false" afterPath="$PROJECT_DIR$/local/live.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/local/render.sh" beforeDir="false" afterPath="$PROJECT_DIR$/local/render.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/live.sh" beforeDir="false" afterPath="$PROJECT_DIR$/server/live.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/server/render-functions.sh" beforeDir="false" afterPath="$PROJECT_DIR$/server/render-functions.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/upload.py" beforeDir="false" afterPath="$PROJECT_DIR$/upload.py" afterDir="false" />
     </list>
@@ -87,7 +86,7 @@
       <workItem from="1721897529411" duration="7187000" />
       <workItem from="1722344228186" duration="1085000" />
       <workItem from="1722412024288" duration="1263000" />
-      <workItem from="1723189882028" duration="27138000" />
+      <workItem from="1723189882028" duration="34614000" />
     </task>
     <servers />
   </component>

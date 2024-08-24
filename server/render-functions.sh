@@ -225,10 +225,20 @@ render_looped_video() {
 upload_video() {
   declare video_file="$1" channel_code="$2"
   echo "Uploaded file: ${video_file}, to channel: ${channel_code}"
+  # download the token to ensure it's always the freshest
+  download_token "${channel_code}"
   # use the python script to upload the video file
   python_upload "${video_file}"
   # update to the token_json secret
   update_token_secret "${channel_code}"
+}
+
+downup() {
+  declare project_id="$1" channel_code="${2:-pg}"
+  prepare_for_render "${project_id}"
+  upload_video "${project_id}-loop.mov" "${channel_code}"
+  rm "${project_id}-loop.mov"
+  rm -fr "${project_id}"
 }
 
 python_upload() {
