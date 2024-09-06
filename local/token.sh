@@ -13,7 +13,7 @@ show_help() {
 }
 
 # Default values
-CHANNEL_CODE="pg"
+CHANNEL_CODE=""
 
 while getopts ":c:h" opt; do
   case ${opt} in

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eo pipefail
+#set -eo pipefail
 
 install_dependencies() {
   update_apt
@@ -222,6 +222,15 @@ render_looped_video() {
   fi
 }
 
+stream_video_no_loop() {
+  declare stream_key="$1" loop_file="$2"
+
+  echo "stream_video_only stream_key=${stream_key}"
+  ffmpeg -re -i "${loop_file}" -c copy -bufsize 10000k \
+    -method POST -f hls -ignore_io_errors 1 \
+    "https://a.upload.youtube.com/http_upload_hls?cid=${stream_key}&copy=0&file=index.m3u8"
+}
+
 upload_video() {
   declare video_file="$1" channel_code="$2"
   echo "Uploaded file: ${video_file}, to channel: ${channel_code}"
@@ -231,6 +240,13 @@ upload_video() {
   python_upload "${video_file}"
   # update to the token_json secret
   update_token_secret "${channel_code}"
+}
+
+down_stream() {
+  declare project_id="$1" stream_key="${2:-y9dh-p0my-4f1m-fgha-fsds}"
+  download_project_files "${project_id}"
+  stream_video_no_loop "${stream_key}" "${project_id}/loop.mov"
+  rm -fr "${project_id}"
 }
 
 downup() {
