@@ -5,20 +5,15 @@ set -eo pipefail
 show_help() {
   echo "Usage: clips.sh [options]"
   echo "Options:"
-  echo "  -k <stream-key>    The stream key (required)"
   echo "  -d <duration>      The duration of the stream (optional)"
   echo "  -h                 Show this help message"
 }
 
 # Default values
-STREAM_KEY=""
 DURATION=""
 
-while getopts ":k:d:h" opt; do
+while getopts ":d:h" opt; do
   case ${opt} in
-    k )
-      STREAM_KEY=$OPTARG
-      ;;
     d )
       DURATION=${OPTARG}
       ;;
@@ -39,9 +34,9 @@ while getopts ":k:d:h" opt; do
   esac
 done
 
-# Check if -k was provided
+# Check if stream key is defined
 if [ -z "${STREAM_KEY}" ]; then
-  echo "You must provide a stream key using the option -k"
+  echo "Error: STREAM_KEY must be defined in /etc/environment"
   show_help
   exit 1
 fi
@@ -55,7 +50,7 @@ main() {
   source /usr/local/render-functions.sh
   refresh_functions
   source /usr/local/render-functions.sh
-  screen_kill stream
+  screen_kill stream || true
   generate_files_txt
   compilation_stream_files "${STREAM_KEY}" "${DURATION}"
 }

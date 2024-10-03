@@ -8,7 +8,6 @@ show_help() {
   echo "Usage: live.sh [options]"
   echo "Options:"
   echo "  -i <instance-name> The instance ID"
-  echo "  -k <stream-key>    The stream key (required)"
   echo "  -q <query>         The query to search for in project titles (required)"
   echo "  -m <music-dir>     Google storage URL for music directory (optional)"
   echo "  -v <volume>        The volume the original video should play at (optional)"
@@ -20,7 +19,6 @@ show_help() {
 
 # Default values
 INSTANCE_NAME=""
-STREAM_KEY=""
 QUERY=""
 MUSIC_GS_URL=""
 VIDEO_VOLUME=""
@@ -28,13 +26,10 @@ AUDIO_GS_URL=""
 LOOP_FILE="loop.mov"
 DURATION=""
 
-while getopts ":i:k:q:m:v:a:l:d:h" opt; do
+while getopts ":i:q:m:v:a:l:d:h" opt; do
   case ${opt} in
     i )
       INSTANCE_NAME=$OPTARG
-      ;;
-    k )
-      STREAM_KEY=$OPTARG
       ;;
     q )
       QUERY=$OPTARG
@@ -78,13 +73,6 @@ if [ -z "${INSTANCE_NAME}" ]; then
   exit 1
 fi
 
-# Check if -k was provided
-if [ -z "${STREAM_KEY}" ]; then
-  echo "You must provide a stream key using the option -k"
-  show_help
-  exit 1
-fi
-
 # Check if -d flag is a number above zero
 DURATION_FLAG=""
 if [[ "${DURATION}" =~ ^[0-9]+$ ]] && [ "${DURATION}" -gt 0 ]; then
@@ -92,7 +80,7 @@ if [[ "${DURATION}" =~ ^[0-9]+$ ]] && [ "${DURATION}" -gt 0 ]; then
 fi
 
 gcloud compute scp "${SCRIPT_DIR}/../server/live.sh" "${INSTANCE_NAME}:~/live.sh"
-gcloud compute ssh "${INSTANCE_NAME}" --command "bash ~/live.sh -k \"${STREAM_KEY}\" -l \"${LOOP_FILE}\" -q \"${QUERY}\" -a \"${AUDIO_GS_URL}\" -m \"${MUSIC_GS_URL}\" ${VIDEO_VOLUME} ${DURATION_FLAG}"
+gcloud compute ssh "${INSTANCE_NAME}" --command "bash ~/live.sh -l \"${LOOP_FILE}\" -q \"${QUERY}\" -a \"${AUDIO_GS_URL}\" -m \"${MUSIC_GS_URL}\" ${VIDEO_VOLUME} ${DURATION_FLAG}"
 
 # alias pg1="bash ~/dev/runloop-uploader.sh -i stream-pg12 -k key1 -q"
 # alias pg1_classics="bash ~/dev/runloop-uploader.sh -i stream-pg12 -k key1 -m gs://.../classics -q"

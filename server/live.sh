@@ -5,7 +5,6 @@ set -eo pipefail
 show_help() {
   echo "Usage: live.sh [options]"
   echo "Options:"
-  echo "  -k <stream-key>    The stream key (required)"
   echo "  -q <query>         The query to search for in project titles (required)"
   echo "  -m <music-dir>     Google storage URL for music directory (optional)"
   echo "  -v <volume>        The volume the original video should play at (optional)"
@@ -16,7 +15,6 @@ show_help() {
 }
 
 # Default values
-STREAM_KEY=""
 QUERY=""
 MUSIC_GS_URL=""
 VIDEO_VOLUME="0"
@@ -24,11 +22,8 @@ AUDIO_GS_URL=""
 LOOP_FILE="loop.mov"
 DURATION=""
 
-while getopts ":k:q:m:v:a:l:d:h" opt; do
+while getopts ":q:m:v:a:l:d:h" opt; do
   case ${opt} in
-    k )
-      STREAM_KEY=$OPTARG
-      ;;
     q )
       QUERY=$OPTARG
       ;;
@@ -322,7 +317,7 @@ clean_up() {
 
 # Check if -k was provided
 if [ -z "${STREAM_KEY}" ]; then
-  echo "Error: You must provide a stream key using the option -k"
+  echo "Error: STREAM_KEY must be defined in /etc/environment"
   show_help
   exit 1
 fi

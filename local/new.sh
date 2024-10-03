@@ -98,7 +98,7 @@ fi
 echo "Provisioning new '${TYPE}' instance named '${NAME}' with a ${CAPACITY}gb ${DISK} disk for stream key '${STREAM_KEY}'."
 
 # copy the latest file to the bucket
-gcloud storage cp "${SCRIPT_DIR}/../server/live-startup.sh" gs://runloop-videos/000-stream-assets/scripts/live-startup.sh
+gcloud storage cp "${SCRIPT_DIR}/../server/boot.sh" gs://runloop-videos/000-stream-assets/scripts/boot.sh
 
 # disk types: pd-standard, pd-ssd, pd-balanced,
 gcloud compute instances create "${NAME}" \
@@ -116,4 +116,4 @@ gcloud compute instances create "${NAME}" \
   --shielded-integrity-monitoring \
   --labels=goog-ec-src=vm_add-gcloud \
   --reservation-affinity=any \
-  --metadata="startup-script-url=gs://runloop-videos/000-stream-assets/scripts/live-startup.sh,stream_key=${STREAM_KEY}"
+  --metadata="startup-script-url=gs://runloop-videos/000-stream-assets/scripts/boot.sh,stream_key=${STREAM_KEY}"

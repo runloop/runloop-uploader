@@ -6,9 +6,14 @@
   <component name="ChangeListManager">
     <list default="true" id="ec737e22-09e7-45b6-9f1e-ac831a29a6ba" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/local/live-create.sh" beforeDir="false" afterPath="$PROJECT_DIR$/local/live-create.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/live-startup.sh" beforeDir="false" afterPath="$PROJECT_DIR$/server/live-startup.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/render-functions.sh" beforeDir="false" afterPath="$PROJECT_DIR$/server/render-functions.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/local/clips.sh" beforeDir="false" afterPath="$PROJECT_DIR$/local/clips.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/local/live-create.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/local/live.sh" beforeDir="false" afterPath="$PROJECT_DIR$/local/live.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/local/new.sh" beforeDir="false" afterPath="$PROJECT_DIR$/local/new.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/clips.sh" beforeDir="false" afterPath="$PROJECT_DIR$/server/clips.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/live-startup.sh" beforeDir="false" afterPath="$PROJECT_DIR$/server/boot.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/live.sh" beforeDir="false" afterPath="$PROJECT_DIR$/server/live.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/remix.sh" beforeDir="false" afterPath="$PROJECT_DIR$/server/remix.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -88,7 +93,7 @@
       <workItem from="1722412024288" duration="1263000" />
       <workItem from="1723189882028" duration="58644000" />
       <workItem from="1726830221038" duration="598000" />
-      <workItem from="1727281720440" duration="54027000" />
+      <workItem from="1727281720440" duration="57131000" />
     </task>
     <servers />
   </component>

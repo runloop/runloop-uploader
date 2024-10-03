@@ -8,7 +8,6 @@ show_help() {
   echo "Usage: clips.sh [options]"
   echo "Options:"
   echo "  -s <server-name>   The server instance ID"
-  echo "  -k <stream-key>    The stream key (required)"
   echo "  -u <location>      The directory url of the clips"
   echo "  -n <max-clips>     The max number of clips to include (Optional)"
   echo "  -i <include>       Pattern to limit which files are included"
@@ -20,7 +19,6 @@ show_help() {
 
 # Default values
 SERVER_ID=""
-STREAM_KEY=""
 MAX_CLIPS="30"
 INCLUDE_PATTERN=""
 EXCLUDE_PATTERN=""
@@ -28,13 +26,10 @@ AUDIO_GS_URL=""
 DURATION=""
 LOCATION=""
 
-while getopts ":s:k:n:i:x:a:d:u:h" opt; do
+while getopts ":s:n:i:x:a:d:u:h" opt; do
   case ${opt} in
     s )
       SERVER_ID=$OPTARG
-      ;;
-    k )
-      STREAM_KEY=$OPTARG
       ;;
     n )
       MAX_CLIPS=$OPTARG
@@ -84,13 +79,6 @@ if [ -z "${LOCATION}" ]; then
   exit 1
 fi
 
-# Check if -k was provided
-if [ -z "${STREAM_KEY}" ]; then
-  echo "You must provide a stream key using the option -k"
-  show_help
-  exit 1
-fi
-
 # Check if -a was provided
 if [ -z "${AUDIO_GS_URL}" ] || [[ ! "${AUDIO_GS_URL}" =~ \.m4a$ ]]; then
   echo "You must provide a valid .m4a audio file URL using the option -a"
@@ -110,8 +98,8 @@ if ! [[ "${MAX_CLIPS}" =~ ^[0-9]+$ ]] || [ "${MAX_CLIPS}" -le 0 ]; then
   exit 1
 fi
 
-echo "bash /usr/local/clips.sh -k ${STREAM_KEY} -u \"${LOCATION}\" -i \"${INCLUDE_PATTERN}\" -x \"${EXCLUDE_PATTERN}\" -a \"${AUDIO_GS_URL}\" -d ${DURATION} -n ${MAX_CLIPS}"
+echo "bash /usr/local/clips.sh -u \"${LOCATION}\" -i \"${INCLUDE_PATTERN}\" -x \"${EXCLUDE_PATTERN}\" -a \"${AUDIO_GS_URL}\" -d ${DURATION} -n ${MAX_CLIPS}"
 
 gcloud storage cp "${SCRIPT_DIR}/../server/render-functions.sh" gs://runloop-videos/000-stream-assets/scripts/render-functions.sh
 gcloud compute scp "${SCRIPT_DIR}/../server/clips.sh" "${SERVER_ID}:~/clips.sh"
-gcloud compute ssh "${SERVER_ID}" --command "bash ~/clips.sh -k \"${STREAM_KEY}\" -u \"${LOCATION}\" -i \"${INCLUDE_PATTERN}\" -x \"${EXCLUDE_PATTERN}\" -a \"${AUDIO_GS_URL}\" -d ${DURATION} -n ${MAX_CLIPS}"
+gcloud compute ssh "${SERVER_ID}" --command "bash ~/clips.sh -u \"${LOCATION}\" -i \"${INCLUDE_PATTERN}\" -x \"${EXCLUDE_PATTERN}\" -a \"${AUDIO_GS_URL}\" -d ${DURATION} -n ${MAX_CLIPS}"
