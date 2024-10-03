@@ -62,8 +62,10 @@ download_upload_script() {
 }
 
 refresh_functions() {
-  gsutil cp "gs://runloop-videos/000-stream-assets/scripts/render-functions.sh" .
-  source render-functions.sh
+  sudo gsutil cp "gs://runloop-videos/000-stream-assets/scripts/render-functions.sh" /usr/local/render-functions.sh
+  source /etc/profile
+  source ~/.profile
+  echo "Render functions refreshed!"
 }
 
 download_metadata() {
@@ -146,7 +148,7 @@ download_project_files() {
     return 1
   fi
 
-  gcloud storage cp -r "gs://runloop-videos/${search_term}" ./
+  gcloud storage cp -r -n "gs://runloop-videos/${search_term}" ./
 }
 
 # Function to check if a file exists
@@ -201,6 +203,22 @@ stream_full_video() {
   fi
 }
 
+#stream_comp() {
+#  echo "Starting stream"
+#  declare file_list="$1"
+#  local stream_key
+#  stream_key="jfsm-dar9-crcd-7e0u-1dkq"
+#
+#  ffmpeg -re -stream_loop -1 -f concat -safe 0 -i files.txt -c copy -bufsize 10000k -method POST -f hls -ignore_io_errors 1 \
+#    "https://a.upload.youtube.com/http_upload_hls?cid=${stream_key}&copy=0&file=index.m3u8"
+#
+#  local ffmpeg_status
+#  ffmpeg_status=$?
+#  if [ $ffmpeg_status -ne 0 ]; then
+#    return 1
+#  fi
+#}
+
 render_full_video() {
   echo "Starting render"
   declare project_id="$1" duration="${2:-11:54:59.92}" file_list="${3:-files.txt}"
@@ -229,6 +247,176 @@ stream_video_no_loop() {
   ffmpeg -re -i "${loop_file}" -c copy -bufsize 10000k \
     -method POST -f hls -ignore_io_errors 1 \
     "https://a.upload.youtube.com/http_upload_hls?cid=${stream_key}&copy=0&file=index.m3u8"
+}
+
+download_pg_audio() {
+  cd ~ || return
+  mkdir -p media/clips
+  gsutil cp gs://runloop-videos/000-stream-assets/sfx/pg-ambience-2024-04-25.m4a media/audio.m4a
+}
+
+pg_standard_compilation_prepare() {
+  declare count="${1:-20}"
+  cd ~ || return
+  rm -fr compilation
+  mkdir -p compilation/clips
+  gsutil cp gs://runloop-videos/000-stream-assets/sfx/pg-ambience-2024-04-25.m4a compilation/audio.m4a
+  # shellcheck disable=SC2046
+  gsutil -m cp $(gsutil ls gs://runloop-videos/001-c-hdr-clips/standard | grep .mov | grep -v "halloween\|xmas\|new-year" | shuf -n "${count}" | tr '\n' ' ') ./compilation/clips
+  exclude compilation/clips "" | shuf | ffmpeg_format files.txt
+}
+
+pg_eerie_compilation_prepare() {
+  declare count="${1:-30}"
+  cd ~ || return
+  rm -fr compilation
+  mkdir -p compilation/clips
+  gsutil cp gs://runloop-videos/000-stream-assets/sfx/eerie-ambience.m4a compilation/audio.m4a
+  # shellcheck disable=SC2046
+  gsutil -m cp $(gsutil ls gs://runloop-videos/001-c-hdr-clips/halloween | grep .mov | shuf -n "${count}" | tr '\n' ' ') ./compilation/clips
+  exclude compilation/clips "" | shuf | ffmpeg_format files.txt
+}
+
+pg_halloween_compilation_prepare() {
+  declare count="${1:-30}"
+  cd ~ || return
+  rm -fr compilation
+  mkdir -p compilation/clips
+  gsutil cp gs://runloop-videos/000-stream-assets/sfx/pg-ambience-2024-04-25.m4a compilation/audio.m4a
+  # shellcheck disable=SC2046
+  gsutil -m cp $(gsutil ls gs://runloop-videos/001-c-hdr-clips/standard | grep "halloween" | shuf -n "${count}" | tr '\n' ' ') ./compilation/clips
+  exclude compilation/clips "" | shuf | ffmpeg_format files.txt
+}
+
+pg_halloween_eerie() {
+  declare count="${1:-25}"
+  cd ~ || return
+  rm -fr compilation
+  mkdir -p compilation/clips
+  gsutil cp gs://runloop-videos/000-stream-assets/sfx/eerie-ambience.m4a compilation/audio.m4a
+  # shellcheck disable=SC2046
+  gsutil -m cp $(gsutil ls gs://runloop-videos/001-c-hdr-clips/halloween | grep .mov | shuf -n "${count}" | tr '\n' ' ') ./compilation/clips
+  exclude compilation/clips "" | shuf | ffmpeg_format files.txt
+}
+
+screen_kill() {
+  declare screen_id="$1"
+  screen -S "${screen_id}" -p 0 -X quit
+}
+
+stream_clean() {
+  # kill any screens that are active with the stream_key
+  cd ~ || return
+  rm -fr compilation
+  mkdir -p compilation/clips
+}
+
+download_audio() {
+  declare url="$1"
+  gsutil cp "${url}" compilation/audio.m4a
+}
+
+list_files_including() {
+  declare url="$1" count="$2" query="$3"
+  gsutil ls "${url}" | grep "${query}" | shuf -n "${count}"
+}
+
+list_files_excluding() {
+  declare url="$1" count="$2" query="$3"
+  gsutil ls "${url}" | grep .mov | grep -v "${query}" | shuf -n "${count}"
+}
+
+list_files() {
+  declare url="$1" count="$2"
+  gsutil ls "${url}" | shuf -n "${count}"
+}
+
+download_clips() {
+  declare file_list="$1"
+  # shellcheck disable=SC2046
+  gsutil -m cp $(echo "${file_list}" | tr '\n' ' ') ./compilation/clips
+}
+
+generate_files_txt() {
+  find ~/compilation/clips -type f -exec realpath {} \; | shuf | ffmpeg_format files.txt
+}
+
+pg_halloween_regular() {
+  declare count="${1:-25}"
+  stream_clean
+  gsutil cp gs://runloop-videos/000-stream-assets/sfx/pg-ambience-2024-04-25.m4a compilation/audio.m4a
+  # shellcheck disable=SC2046
+  gsutil -m cp $(gsutil ls gs://runloop-videos/001-c-hdr-clips/standard | grep "halloween" | shuf -n "${count}" | tr '\n' ' ') ./compilation/clips
+  exclude compilation/clips "" | shuf | ffmpeg_format files.txt
+}
+
+
+
+compilation_render() {
+  ffmpeg -y -f concat -safe 0 -i files.txt -c copy "compilation/loop.mov"
+}
+
+compilation_stream_loop() {
+  declare stream_key="$1"
+  echo "Starting stream"
+
+  screen -dmS stream ffmpeg -re -stream_loop -1 -i compilation/loop.mov -stream_loop -1 \
+    -i compilation/audio.m4a -map 0:v -map 1:a -c:v copy -c:a copy -bufsize 10000k -method POST -f hls -ignore_io_errors 1 \
+    "https://a.upload.youtube.com/http_upload_hls?cid=${stream_key}&copy=0&file=index.m3u8"
+
+
+  local ffmpeg_status
+  ffmpeg_status=$?
+  if [ $ffmpeg_status -ne 0 ]; then
+    return 1
+  fi
+}
+
+compilation_stream_files() {
+  declare stream_key="$1" duration="$2"
+
+  local duration_flag=""
+  if [[ "${duration}" =~ ^[0-9]+$ ]] && [ "${duration}" -gt 0 ]; then
+    seconds=$((duration * 3600))
+    duration_flag="-t ${seconds}"
+  fi
+
+  screen -dmS stream ffmpeg -re -stream_loop -1 -f concat -safe 0 -i files.txt -stream_loop -1 \
+    -i compilation/audio.m4a -map 0:v -map 1:a -c:v copy -c:a copy ${duration_flag} -bufsize 10000k -method POST -f hls -ignore_io_errors 1 \
+    "https://a.upload.youtube.com/http_upload_hls?cid=${stream_key}&copy=0&file=index.m3u8"
+
+  local ffmpeg_status
+  ffmpeg_status=$?
+  if [ $ffmpeg_status -ne 0 ]; then
+    return 1
+  fi
+}
+
+pg_standard_stream() {
+  declare count="${1:-25}" stream_key="$2"
+  pg_standard_compilation_prepare "${count}"
+  compilation_render
+  compilation_stream_loop "${stream_key}"
+}
+
+pg_eerie_stream() {
+  declare stream_key="$1"
+  pg_halloween_eerie 25
+  compilation_stream_files "${stream_key}"
+}
+
+#pg_eerie_stream() {
+#  declare stream_key="$1"
+#  pg_eerie_compilation_prepare 30
+#  compilation_render
+#  compilation_stream_loop "${stream_key}"
+#}
+
+pg_halloween_stream() {
+  declare stream_key="$1"
+  pg_halloween_compilation_prepare 30
+  compilation_render
+  compilation_stream_loop "${stream_key}"
 }
 
 upload_video() {
@@ -272,6 +460,62 @@ delete_instance() {
   local instance_name
   instance_name=$(hostname)
   gcloud compute instances delete "${instance_name}" --zone=europe-west1-b --quiet
+}
+
+
+include() {
+  declare dir="$1" include_words="$2"
+  # Convert the comma-separated list to an array
+  IFS=',' read -r -a WORDS <<< "${include_words}"
+
+  # Loop through the directory and include only files with any of the words in the filename
+  for file in "$dir"/*; do
+    filename=$(basename "$file")
+    include=0
+    for word in "${WORDS[@]}"; do
+      if [[ "$filename" == *"$word"* ]]; then
+        include=1
+        break
+      fi
+    done
+    if [ "$include" -eq 1 ]; then
+      echo "$file"
+    fi
+  done
+}
+
+exclude() {
+  declare dir="$1" exclude_words="$2"
+  # Convert the comma-separated list to an array
+  IFS=',' read -r -a WORDS <<< "$exclude_words"
+
+  # Loop through the directory and exclude files with any of the words in the filename
+  for file in "$dir"/*; do
+    skip=0
+    for word in "${WORDS[@]}"; do
+      if [[ "$file" == *"$word"* ]]; then
+        skip=1
+        break
+      fi
+    done
+    if [ "$skip" -eq 0 ]; then
+      realpath "${file}"
+    fi
+  done
+}
+
+ffmpeg_format() {
+  output_file="${1:-file_list.txt}"  # Output file, default is 'file_list.txt'
+
+  # Clear the output file if it already exists
+  echo "" > "$output_file"
+
+  # Read from stdin (piped input) and write to the FFmpeg list
+  while read -r file; do
+    echo "file '$file'" >> "$output_file"
+  done
+
+  echo "FFmpeg file list saved to $output_file"
 }
 
 send_notification() {
